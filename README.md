@@ -19,7 +19,7 @@ in the meantime here is some popular websites that people visit;
 
 this proxy is the better version of ORBIT(discounted due to personal reasons)
 
-inorder to use orbit, just clone the git into your repo(beginner) via gh repo clone viroda1/Axis
+inorder to use axis, just clone the git into your repo(beginner) via gh repo clone viroda1/Axis
 and host it on GitHub, or download the zip(advanced), and host it on other website hosting providers.
 Resources for self-hosting:
 - https://github.com/nvm-sh/nvm
