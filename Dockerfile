@@ -1,14 +1,6 @@
-FROM node:20-alpine AS build
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build 2>/dev/null || true
-
 FROM nginx:alpine
-COPY --from=build /app /usr/share/nginx/html
+COPY . /usr/share/nginx/html
 
-# Service worker needs proper MIME types + no-cache for SW file
 RUN echo 'server {\n\
     listen 80;\n\
     root /usr/share/nginx/html;\n\
