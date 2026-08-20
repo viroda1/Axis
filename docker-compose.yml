@@ -1,0 +1,9 @@
+version: "3.9"
+
+services:
+  axis:
+    build: .
+    container_name: axis-browser
+    ports:
+      - "3000:80"
+    restart: unless-stopped
