@@ -1,0 +1,394 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="https://raw.githubusercontent.com/viroda1/Axis/refs/heads/main/Untitled%20design%20(1).svg" type="image/svg+xml">
+<title>Axis — Storage</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #030304;
+    --surface: rgba(255,255,255,0.03);
+    --surface-hover: rgba(255,255,255,0.05);
+    --text: #FFFFFF;
+    --text-muted: #94a3b8;
+    --text-dim: #64748b;
+    --text-weakest: #475569;
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --accent-glow: rgba(99,102,241,0.15);
+    --border: rgba(255,255,255,0.06);
+    --border-hover: rgba(255,255,255,0.12);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 300;
+    line-height: 1.6;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 60% 50% at 50% 30%, black 20%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 30%, black 20%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .bg-glow {
+    position: fixed;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    top: -150px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    filter: blur(140px);
+    opacity: 0.06;
+    pointer-events: none;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 60px 24px 80px;
+    animation: fade-in 0.6s ease-out;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 8px;
+  }
+
+  .page-header img {
+    width: 36px;
+    height: 36px;
+    filter: drop-shadow(0 0 12px rgba(99,102,241,0.25));
+  }
+
+  .page-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .page-subtitle {
+    color: var(--text-weakest);
+    font-size: 13px;
+    margin-bottom: 24px;
+    padding-left: 50px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 150ms ease;
+  }
+
+  .toolbar-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+    border-color: var(--border-hover);
+  }
+
+  .toolbar-btn.danger:hover {
+    border-color: rgba(239,68,68,0.3);
+    color: #f87171;
+    background: rgba(239,68,68,0.08);
+  }
+
+  .toolbar-btn i {
+    font-size: 11px;
+  }
+
+  .count {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text-weakest);
+    font-weight: 400;
+  }
+
+  .code-block {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .code-header i {
+    color: var(--accent-light);
+    font-size: 11px;
+  }
+
+  .code-body {
+    padding: 16px;
+    overflow-x: auto;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  .code-body pre {
+    margin: 0;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--text-muted);
+    white-space: pre;
+    tab-size: 2;
+  }
+
+  .code-body::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .code-body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .code-body::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+  }
+
+  .code-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.15);
+  }
+
+  /* Syntax highlighting */
+  .json-key { color: var(--accent-light); }
+  .json-string { color: #10b981; }
+  .json-number { color: #f59e0b; }
+  .json-bool { color: #f472b6; }
+  .json-null { color: var(--text-weakest); }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: var(--text-weakest);
+  }
+
+  .empty-state i {
+    font-size: 28px;
+    margin-bottom: 12px;
+    display: block;
+    opacity: 0.4;
+  }
+
+  .empty-state p {
+    font-size: 13px;
+  }
+
+  .footer {
+    margin-top: 24px;
+    text-align: center;
+    color: var(--text-weakest);
+    font-size: 11px;
+  }
+
+  .footer a {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 150ms ease;
+  }
+
+  .footer a:hover {
+    color: var(--accent-light);
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: rgba(5,5,7,0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    color: #FFFFFF;
+    font-size: 13px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 400;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    animation: toast-in 0.4s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes toast-out {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 0; transform: translateY(8px) scale(0.96); }
+  }
+
+  @media (max-width: 480px) {
+    .container { padding: 40px 16px 60px; }
+    .code-body { padding: 12px; }
+    .code-body pre { font-size: 11px; }
+    .toolbar { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="container">
+    <div class="page-header">
+      <img src="https://raw.githubusercontent.com/viroda1/Axis/refs/heads/main/Untitled%20design%20(1).svg" alt="Axis">
+      <h1>Local Storage</h1>
+    </div>
+    <p class="page-subtitle">Raw localStorage entries for this origin</p>
+
+    <div class="toolbar">
+      <button class="toolbar-btn" onclick="copyToClipboard()">
+        <i class="fa-regular fa-clipboard"></i> Copy
+      </button>
+      <button class="toolbar-btn" onclick="downloadJSON()">
+        <i class="fa-solid fa-download"></i> Download
+      </button>
+      <button class="toolbar-btn danger" onclick="clearStorage()">
+        <i class="fa-solid fa-trash"></i> Clear All
+      </button>
+      <span class="count" id="count"></span>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <i class="fa-solid fa-database"></i>
+        localStorage
+      </div>
+      <div class="code-body">
+        <pre id="out"></pre>
+      </div>
+    </div>
+
+    <div class="footer">
+      <a href="axis://urls">Internal URLs</a> · <a href="axis://about">About Axis</a>
+    </div>
+  </div>
+
+  <script>
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      data[key] = localStorage.getItem(key);
+    }
+
+    document.getElementById("count").textContent = `${Object.keys(data).length} entr${Object.keys(data).length === 1 ? 'y' : 'ies'}`;
+
+    if (Object.keys(data).length === 0) {
+      document.getElementById("out").innerHTML = '<div class="empty-state"><i class="fa-solid fa-box-open"></i><p>No localStorage entries found</p></div>';
+    } else {
+      document.getElementById("out").innerHTML = syntaxHighlight(JSON.stringify(data, null, 2));
+    }
+
+    function syntaxHighlight(json) {
+      return json
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"([^"]+)"(?=\s*:)/g, '<span class="json-key">"$1"</span>')
+        .replace(/:\s*"([^"]*)"/g, ': <span class="json-string">"$1"</span>')
+        .replace(/:\s*(\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
+        .replace(/:\s*(true|false)/g, ': <span class="json-bool">$1</span>')
+        .replace(/:\s*(null)/g, ': <span class="json-null">$1</span>');
+    }
+
+    function copyToClipboard() {
+      const text = JSON.stringify(data, null, 2);
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('<i class="fa-solid fa-check" style="color:#10b981;"></i> Copied to clipboard');
+      }).catch(() => {
+        showToast('<i class="fa-solid fa-xmark" style="color:#ef4444;"></i> Copy failed');
+      });
+    }
+
+    function downloadJSON() {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'axis-storage.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('<i class="fa-solid fa-download" style="color:#818cf8;"></i> Downloaded axis-storage.json');
+    }
+
+    function clearStorage() {
+      if (!confirm('Clear all localStorage entries? This cannot be undone.')) return;
+      localStorage.clear();
+      location.reload();
+    }
+
+    function showToast(html) {
+      const existing = document.querySelector('.toast');
+      if (existing) existing.remove();
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = html;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.style.animation = 'toast-out 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, 2500);
+    }
+  </script>
+</body>
+</html>

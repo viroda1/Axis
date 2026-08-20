@@ -1,0 +1,8 @@
+{
+    "id": "example-extension",
+    "name": "Example Extension",
+    "version": "1.0",
+    "description": "Example extension for Axis.",
+    "icon": "",
+    "popup": "popup.html"
+}
