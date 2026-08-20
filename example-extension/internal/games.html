@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="https://raw.githubusercontent.com/viroda1/Axis/refs/heads/main/Untitled%20design%20(1).svg" type="image/svg+xml">
+<title>Axis — Games</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #030304;
+    --surface: rgba(255,255,255,0.03);
+    --surface-hover: rgba(255,255,255,0.05);
+    --text: #FFFFFF;
+    --text-muted: #94a3b8;
+    --text-dim: #64748b;
+    --text-weakest: #475569;
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --accent-glow: rgba(99,102,241,0.15);
+    --border: rgba(255,255,255,0.06);
+    --border-hover: rgba(255,255,255,0.12);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 300;
+    line-height: 1.6;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 70% 50% at 50% 30%, black 20%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 50% at 50% 30%, black 20%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .bg-glow {
+    position: fixed;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    filter: blur(140px);
+    opacity: 0.06;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Browser View */
+  #browser {
+    position: relative;
+    z-index: 1;
+    animation: fade-in 0.5s ease-out;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 48px 24px 0;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .page-header img {
+    width: 36px;
+    height: 36px;
+    filter: drop-shadow(0 0 12px rgba(99,102,241,0.25));
+  }
+
+  .page-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .page-subtitle {
+    color: var(--text-weakest);
+    font-size: 13px;
+    padding: 6px 24px 0;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .page-subtitle a {
+    color: var(--accent-light);
+    text-decoration: none;
+    transition: color 150ms ease;
+  }
+
+  .page-subtitle a:hover {
+    color: #a5b4fc;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    padding: 28px 24px 60px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .game-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: default;
+    transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+  }
+
+  .game-card:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.3);
+  }
+
+  .game-card img {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    display: block;
+    background: rgba(255,255,255,0.02);
+    transition: transform 400ms ease;
+  }
+
+  .game-card:hover img {
+    transform: scale(1.03);
+  }
+
+  .game-img-wrapper {
+    overflow: hidden;
+    position: relative;
+  }
+
+  .game-img-wrapper::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(transparent, rgba(3,3,4,0.6));
+    pointer-events: none;
+  }
+
+  .game-info {
+    padding: 14px 16px 16px;
+  }
+
+  .game-info h3 {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
+  }
+
+  .play-btn {
+    width: 100%;
+    padding: 9px;
+    border: none;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #FFFFFF;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Inter', system-ui, sans-serif;
+    transition: all 150ms ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .play-btn:hover {
+    background: var(--accent-light);
+    box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+  }
+
+  .play-btn:active {
+    transform: scale(0.98);
+  }
+
+  .play-btn i {
+    font-size: 11px;
+  }
+
+  /* Empty / Loading State */
+  .loading-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 80px 24px;
+    color: var(--text-weakest);
+  }
+
+  .loading-state .spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent-light);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .error-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 80px 24px;
+    color: var(--text-weakest);
+  }
+
+  .error-state i {
+    font-size: 28px;
+    margin-bottom: 12px;
+    display: block;
+    color: var(--error, #ef4444);
+    opacity: 0.6;
+  }
+
+  .error-state p {
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  .retry-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 150ms ease;
+  }
+
+  .retry-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+    border-color: var(--border-hover);
+  }
+
+  /* Launcher View */
+  #launcher {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: #000;
+  }
+
+  .back-btn {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: rgba(3,3,4,0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 500;
+    transition: all 150ms ease;
+    animation: fade-in 0.3s ease-out;
+  }
+
+  .back-btn:hover {
+    color: var(--text);
+    background: rgba(3,3,4,0.95);
+    border-color: var(--border-hover);
+  }
+
+  .back-btn i {
+    font-size: 12px;
+  }
+
+  /* Footer */
+  .games-footer {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px 40px;
+    text-align: center;
+    color: var(--text-weakest);
+    font-size: 11px;
+  }
+
+  .games-footer a {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 150ms ease;
+  }
+
+  .games-footer a:hover {
+    color: var(--accent-light);
+  }
+
+  @media (max-width: 480px) {
+    .page-header { padding: 36px 16px 0; }
+    .page-subtitle { padding: 6px 16px 0; }
+    .games-grid { padding: 20px 16px 40px; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    .game-info { padding: 10px 12px 14px; }
+    .game-info h3 { font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div id="browser">
+    <div class="page-header">
+      <img src="https://raw.githubusercontent.com/viroda1/Axis/refs/heads/main/Untitled%20design%20(1).svg" alt="Axis">
+      <h1>Games</h1>
+    </div>
+    <p class="page-subtitle">Imported from <a href="https://pgis3.vercel.app" target="_blank">PGIS 3</a></p>
+
+    <div class="games-grid" id="games">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p style="font-size:13px;">Loading games...</p>
+      </div>
+    </div>
+
+    <div class="games-footer">
+      <a href="axis://urls">Internal URLs</a> · <a href="axis://about">About Axis</a>
+    </div>
+  </div>
+
+  <div id="launcher"></div>
+
+  <script>
+    const BASE = "https://pgis3.vercel.app";
+    const gamesContainer = document.getElementById("games");
+
+    async function loadGames() {
+      try {
+        const names = await fetch(`${BASE}/games.json`).then(r => {
+          if (!r.ok) throw new Error("Failed to fetch games list");
+          return r.json();
+        });
+
+        gamesContainer.innerHTML = "";
+
+        if (!names || names.length === 0) {
+          gamesContainer.innerHTML = `
+            <div class="error-state">
+              <i class="fa-solid fa-box-open"></i>
+              <p>No games available</p>
+            </div>
+          `;
+          return;
+        }
+
+        for (const name of names) {
+          const card = document.createElement("div");
+          card.className = "game-card";
+
+          card.innerHTML = `
+            <div class="game-img-wrapper">
+              <img src="${BASE}/games/${encodeURIComponent(name)}.png" alt="${name}" loading="lazy" onerror="this.style.display='none'">
+            </div>
+            <div class="game-info">
+              <h3 title="${name}">${name}</h3>
+              <button class="play-btn"><i class="fa-solid fa-play"></i> Play</button>
+            </div>
+          `;
+
+          card.querySelector(".play-btn").onclick = () => playGame(name);
+          gamesContainer.appendChild(card);
+        }
+      } catch (err) {
+        console.error("[Axis] Failed to load games:", err);
+        gamesContainer.innerHTML = `
+          <div class="error-state">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <p>Failed to load games. Check your connection.</p>
+            <button class="retry-btn" onclick="loadGames()"><i class="fa-solid fa-rotate-right" style="font-size:11px;"></i> Retry</button>
+          </div>
+        `;
+      }
+    }
+
+    async function playGame(name) {
+      try {
+        const html = await fetch(`${BASE}/games/${encodeURIComponent(name)}.html`)
+          .then(r => {
+            if (!r.ok) throw new Error("Game not found");
+            return r.text();
+          });
+
+        const blob = new Blob([html], { type: "text/html" });
+        const url = URL.createObjectURL(blob);
+
+        document.getElementById("browser").style.display = "none";
+
+        const launcher = document.getElementById("launcher");
+        launcher.style.display = "block";
+        launcher.innerHTML = `
+          <button class="back-btn" id="back">
+            <i class="fa-solid fa-arrow-left"></i> Back to Games
+          </button>
+          <iframe
+            id="game"
+            src="${url}"
+            style="width:100%;height:100vh;border:none;"
+            allowfullscreen
+          ></iframe>
+        `;
+
+        document.getElementById("back").onclick = () => {
+          URL.revokeObjectURL(url);
+          launcher.style.display = "none";
+          launcher.innerHTML = "";
+          document.getElementById("browser").style.display = "block";
+        };
+      } catch (err) {
+        console.error("[Axis] Failed to launch game:", name, err);
+      }
+    }
+
+    loadGames();
+  </script>
+</body>
+</html>

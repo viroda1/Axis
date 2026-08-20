@@ -1,0 +1,244 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="https://raw.githubusercontent.com/viroda1/Axis/refs/heads/main/Untitled%20design%20(1).svg" type="image/svg+xml">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <title>Axis — Not Found</title>
+  <script>
+if (location.pathname.startsWith("/internal/")) {
+    if (document.referrer && new URL(document.referrer).origin === location.origin) {
+        history.back();
+    } else {
+        location.href = "/NT.html";
+    }
+}
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      height: 100vh;
+      background: #030304;
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    .page {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 24px;
+      position: relative;
+    }
+
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 20%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 50%, black 20%, transparent 100%);
+      pointer-events: none;
+    }
+
+    .bg-glow {
+      position: fixed;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #6366f1;
+      filter: blur(140px);
+      opacity: 0.06;
+      pointer-events: none;
+      animation: pulse-glow 6s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.04; }
+      50% { opacity: 0.08; }
+    }
+
+    .card {
+      position: relative;
+      text-align: center;
+      max-width: 380px;
+      animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+    }
+
+    @keyframes fade-in-up {
+      from { opacity: 0; transform: translateY(20px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.25));
+      margin-bottom: 32px;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
+    .error-code {
+      font-size: 96px;
+      font-weight: 700;
+      letter-spacing: -0.06em;
+      line-height: 1;
+      background: linear-gradient(180deg, rgba(99,102,241,0.25) 0%, rgba(99,102,241,0.03) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+      user-select: none;
+    }
+
+    .error-title {
+      font-size: 18px;
+      font-weight: 500;
+      color: #FFFFFF;
+      letter-spacing: -0.01em;
+      margin-bottom: 8px;
+    }
+
+    .error-desc {
+      font-size: 14px;
+      font-weight: 300;
+      color: #64748b;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+
+    .return-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 24px;
+      background: #FFFFFF;
+      color: #000000;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'Inter', system-ui, sans-serif;
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+
+    .return-btn:hover {
+      background: #e2e8f0;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(255,255,255,0.08);
+    }
+
+    .return-btn:active {
+      transform: translateY(0);
+    }
+
+    .return-btn i {
+      font-size: 11px;
+    }
+
+    .home-link {
+      display: inline-block;
+      margin-top: 16px;
+      font-size: 12px;
+      color: #475569;
+      text-decoration: none;
+      transition: color 150ms ease;
+      font-weight: 400;
+    }
+
+    .home-link:hover {
+      color: #818cf8;
+    }
+
+    .divider {
+      width: 32px;
+      height: 1px;
+      background: rgba(255,255,255,0.06);
+      margin: 24px auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .brand img {
+      width: 16px;
+      height: 16px;
+      opacity: 0.4;
+    }
+
+    .brand span {
+      font-size: 11px;
+      color: #334155;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="page">
+    <div class="card">
+      <img
+        class="logo"
+        src="https://raw.githubusercontent.com/viroda1/Axis/refs/heads/main/Untitled%20design%20(1).svg"
+        alt="Axis"
+      >
+
+      <div class="error-code">404</div>
+      <div class="error-title">Page Not Found</div>
+      <p class="error-desc">
+        The page you're looking for doesn't exist or has been moved.
+      </p>
+
+      <button class="return-btn" onclick="goBack()">
+        <i class="fa-solid fa-arrow-left"></i>
+        Go Back
+      </button>
+
+      <br>
+
+      <a href="/" class="home-link">Return to Axis</a>
+
+      <div class="divider"></div>
+
+      <div class="brand">
+        <img src="https://raw.githubusercontent.com/viroda1/Axis/refs/heads/main/Untitled%20design%20(1).svg" alt="">
+        <span>Axis Browser</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function goBack() {
+      if (document.referrer && new URL(document.referrer).origin === location.origin) {
+        history.back();
+      } else {
+        location.href = "/";
+      }
+    }
+  </script>
+</body>
+</html>

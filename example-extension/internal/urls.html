@@ -1,0 +1,346 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="https://raw.githubusercontent.com/viroda1/Axis/refs/heads/main/Untitled%20design%20(1).svg" type="image/svg+xml">
+<title>Axis — URLs</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #030304;
+    --surface: rgba(255,255,255,0.03);
+    --surface-hover: rgba(255,255,255,0.05);
+    --text: #FFFFFF;
+    --text-muted: #94a3b8;
+    --text-dim: #64748b;
+    --text-weakest: #475569;
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --accent-glow: rgba(99,102,241,0.15);
+    --border: rgba(255,255,255,0.06);
+    --border-hover: rgba(255,255,255,0.12);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 300;
+    line-height: 1.6;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 60% 50% at 50% 30%, black 20%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 30%, black 20%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .bg-glow {
+    position: fixed;
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    top: -150px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    filter: blur(140px);
+    opacity: 0.06;
+    pointer-events: none;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 60px 24px 80px;
+    animation: fade-in 0.6s ease-out;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .page-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .page-header img {
+    width: 32px;
+    height: 32px;
+    filter: drop-shadow(0 0 10px rgba(99,102,241,0.2));
+  }
+
+  h1 {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .page-subtitle {
+    color: var(--text-weakest);
+    font-size: 13px;
+    margin-bottom: 40px;
+    padding-left: 44px;
+  }
+
+  h2 {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-light);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  h2 i {
+    font-size: 10px;
+  }
+
+  .url-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 36px;
+  }
+
+  .url-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    transition: all 150ms ease;
+  }
+
+  .url-item:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-hover);
+    color: var(--text);
+    transform: translateX(2px);
+  }
+
+  .url-item i {
+    width: 16px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-weakest);
+    transition: color 150ms ease;
+  }
+
+  .url-item:hover i {
+    color: var(--accent-light);
+  }
+
+  .url-code {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    color: var(--accent-light);
+    background: var(--accent-glow);
+    padding: 2px 8px;
+    border-radius: 5px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .url-desc {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  hr {
+    border: none;
+    height: 1px;
+    background: var(--border);
+    margin: 40px 0;
+  }
+
+  .mirror-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .mirror-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all 150ms ease;
+  }
+
+  .mirror-item:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-hover);
+    transform: translateX(2px);
+  }
+
+  .mirror-item i {
+    width: 16px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-weakest);
+    transition: color 150ms ease;
+  }
+
+  .mirror-item:hover i {
+    color: var(--accent-light);
+  }
+
+  .mirror-url {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    transition: color 150ms ease;
+  }
+
+  .mirror-item:hover .mirror-url {
+    color: var(--text);
+  }
+
+  .mirror-badge {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent-light);
+    background: var(--accent-glow);
+    padding: 2px 8px;
+    border-radius: 5px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 480px) {
+    .container { padding: 40px 16px 60px; }
+    .url-code, .mirror-badge { display: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="container">
+    <div class="page-header">
+      <img src="https://raw.githubusercontent.com/viroda1/Axis/refs/heads/main/Untitled%20design%20(1).svg" alt="Axis">
+      <h1>Internal URLs</h1>
+    </div>
+    <p class="page-subtitle">Built-in pages and external mirrors for Axis</p>
+
+    <h2><i class="fa-solid fa-compass"></i> Main</h2>
+    <div class="url-list">
+      <a class="url-item" href="/internal/about.html">
+        <i class="fa-solid fa-info-circle"></i>
+        <span class="url-desc">General info about Axis</span>
+        <span class="url-code">axis://about</span>
+      </a>
+      <a class="url-item" href="/internal/changelog.html">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        <span class="url-desc">Changes and updates made to Axis</span>
+        <span class="url-code">axis://changelog</span>
+      </a>
+      <a class="url-item" href="/internal/extensions.html">
+        <i class="fa-solid fa-puzzle-piece"></i>
+        <span class="url-desc">List of installed extensions</span>
+        <span class="url-code">axis://extensions</span>
+      </a>
+      <a class="url-item" href="/internal/games.html">
+        <i class="fa-solid fa-gamepad"></i>
+        <span class="url-desc">Games imported from PGIS 3</span>
+        <span class="url-code">axis://games</span>
+      </a>
+      <a class="url-item" href="/internal/newtab.html">
+        <i class="fa-solid fa-plus"></i>
+        <span class="url-desc">New tab page</span>
+        <span class="url-code">axis://newtab</span>
+      </a>
+      <a class="url-item" href="/internal/urls.html">
+        <i class="fa-solid fa-link"></i>
+        <span class="url-desc">Internal URLs and mirrors</span>
+        <span class="url-code">axis://urls</span>
+      </a>
+    </div>
+
+    <h2><i class="fa-solid fa-ellipsis"></i> Other</h2>
+    <div class="url-list">
+      <a class="url-item" href="/internal/legal.html">
+        <i class="fa-solid fa-scale-balanced"></i>
+        <span class="url-desc">Legal information about Axis</span>
+        <span class="url-code">axis://legal</span>
+      </a>
+      <a class="url-item" href="/internal/repository.html">
+        <i class="fa-brands fa-github"></i>
+        <span class="url-desc">GitHub repository for Axis</span>
+        <span class="url-code">axis://repository</span>
+      </a>
+      <a class="url-item" href="/internal/storage.html">
+        <i class="fa-solid fa-database"></i>
+        <span class="url-desc">Local storage viewer</span>
+        <span class="url-code">axis://storage</span>
+      </a>
+      <a class="url-item" href="/internal/version.html">
+        <i class="fa-solid fa-code-branch"></i>
+        <span class="url-desc">Detailed version info</span>
+        <span class="url-code">axis://version</span>
+      </a>
+    </div>
+
+    <hr>
+
+    <h2><i class="fa-solid fa-globe"></i> Official Mirrors</h2>
+    <div class="mirror-list">
+      <a class="mirror-item" href="https://zinc-browser.vercel.app">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        <span class="mirror-url">zinc-browser.vercel.app</span>
+        <span class="mirror-badge">Main</span>
+      </a>
+      <a class="mirror-item" href="https://zinc-proxy.vercel.app">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        <span class="mirror-url">zinc-proxy.vercel.app</span>
+      </a>
+      <a class="mirror-item" href="https://zinc.chemistry.bumon.ar">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        <span class="mirror-url">zinc.chemistry.bumon.ar</span>
+      </a>
+      <a class="mirror-item" href="https://zinc.math.bumon.ar">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        <span class="mirror-url">zinc.math.bumon.ar</span>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

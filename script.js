@@ -1,0 +1,1078 @@
+// =====================================================
+// CONFIGURATION - Gets from config.js
+// =====================================================
+const DEFAULT_WISP = window.SITE_CONFIG?.defaultWisp ?? "";
+
+const WISP_SERVERS = [
+    {
+        group: "Axis Servers",
+        name: "1. Frankfurt (EU Central)",
+        url: "wss://pgis-wisp.onrender.com/"
+    },
+    {
+        group: "Axis Servers",
+        name: "2. Ohio (US East)",
+        url: "wss://pgis-wisp-2.onrender.com/"
+    },
+    {
+        group: "Axis Servers",
+        name: "3. Singapore (Southeast Asia)",
+        url: "wss://pgis-wisp-3.onrender.com/"
+    },
+    {
+        group: "Axis Servers",
+        name: "4. Oregon (US West)",
+        url: "wss://pgis-wisp-4.onrender.com/"
+    },
+    {
+        group: "Public",
+        name: "MercuryWorkshop",
+        url: "wss://wisp.mercurywork.shop/"
+    },
+    {
+        group: "Public",
+        name: "TOMP Bare Server (best for youtube)",
+        url: "wss://bare-server.fly.dev/wisp/"
+    },
+    {
+        group: "Other",
+        name: "Axis Proxy",
+        url: "wss://homework--spmspy0800.replit.app/wisp/"
+    },
+    {
+        group: "Other",
+        name: "classroom.lat",
+        url: "wss://pgis-wisp.onrender.com/"
+    }
+];
+
+// Helper to get servers grouped
+function getGroupedWispServers() {
+    return getAllWispServers().reduce((groups, server) => {
+        (groups[server.group] ??= []).push(server);
+        return groups;
+    }, {});
+}
+
+// Initialize default proxy server if not set
+if (!localStorage.getItem("proxServer")) {
+    localStorage.setItem("proxServer", DEFAULT_WISP);
+}
+
+// Helper to get all servers (config + custom)
+function getAllWispServers() {
+    const customWisps = getStoredWisps();
+    return [...WISP_SERVERS, ...customWisps];
+}
+
+// =====================================================
+// PROACTIVE SERVER HEALTH CHECKING
+// =====================================================
+
+async function pingWispServer(url, timeout = 2000) {
+    return new Promise((resolve) => {
+        const start = Date.now();
+        try {
+            const ws = new WebSocket(url);
+            const timer = setTimeout(() => {
+                try { ws.close(); } catch {}
+                resolve({ url, success: false, latency: null });
+            }, timeout);
+
+            ws.onopen = () => {
+                clearTimeout(timer);
+                const latency = Date.now() - start;
+                try { ws.close(); } catch {}
+                resolve({ url, success: true, latency });
+            };
+
+            ws.onerror = () => {
+                clearTimeout(timer);
+                try { ws.close(); } catch {}
+                resolve({ url, success: false, latency: null });
+            };
+        } catch {
+            resolve({ url, success: false, latency: null });
+        }
+    });
+}
+
+async function findBestWispServer(servers, currentUrl) {
+    if (!servers || servers.length === 0) return currentUrl;
+
+    const results = await Promise.all(
+        servers.map(s => pingWispServer(s.url, 2000))
+    );
+
+    const working = results
+        .filter(r => r.success)
+        .sort((a, b) => a.latency - b.latency);
+
+    if (working.length > 0) {
+        return working[0].url;
+    }
+
+    return currentUrl || servers[0]?.url;
+}
+
+async function initializeWithBestServer() {
+    const autoswitch = localStorage.getItem('wispAutoswitch') !== 'false';
+    const allServers = getAllWispServers();
+
+    if (!autoswitch || allServers.length <= 1) {
+        return;
+    }
+
+    const currentUrl = localStorage.getItem("proxServer") || DEFAULT_WISP;
+    
+    const currentCheck = await pingWispServer(currentUrl, 2000);
+    
+    if (currentCheck.success) {
+        console.log("[Axis] Current server is working:", currentUrl, currentCheck.latency + "ms");
+        return;
+    }
+
+    console.log("[Axis] Current server not responding, finding better server...");
+    const best = await findBestWispServer(allServers, currentUrl);
+    
+    if (best && best !== currentUrl) {
+        console.log("[Axis] Auto-switching to faster server:", best);
+        localStorage.setItem("proxServer", best);
+
+        if (typeof trackWispServer === "function") {
+            trackWispServer(best);
+        }
+
+        const serverName = allServers.find(s => s.url === best)?.name || 'Faster Server';
+        notify('info', 'Auto-switched', `Using ${serverName} for best performance`);
+    }
+}
+
+// =====================================================
+// BROWSER STATE
+// =====================================================
+const BareMux = window.BareMux ?? { BareMuxConnection: class { setTransport() {} } };
+
+let sharedScramjet = null;
+let sharedConnection = null;
+let sharedConnectionReady = false;
+
+let tabs = [];
+let activeTabId = null;
+let nextTabId = 1;
+
+function runInActiveFrame(code) {
+    const tab = getActiveTab();
+    const frame = tab?.frame?.frame;
+
+    if (!frame) return false;
+
+    try {
+        const win = frame.contentWindow;
+        const doc = frame.contentDocument;
+
+        if (!win || !doc) return false;
+
+        const script = doc.createElement("script");
+        script.textContent = `(function(){ try { ${code} } catch(e){ console.error(e); } })();`;
+        doc.documentElement.appendChild(script);
+        script.remove();
+
+        return true;
+    } catch (e) {
+        console.warn("[Axis] Injection failed:", e);
+        return false;
+    }
+}
+
+function parseBookmarklet(input) {
+    if (!input) return null;
+    if (input.startsWith("javascript:")) {
+        return input.slice("javascript:".length);
+    }
+    return null;
+}
+
+// =====================================================
+// UTILITIES
+// =====================================================
+const getBasePath = () => {
+    const basePath = location.pathname.replace(/[^/]*$/, '');
+    return basePath.endsWith('/') ? basePath : basePath + '/';
+};
+
+const getStoredWisps = () => {
+    try { return JSON.parse(localStorage.getItem('customWisps') ?? '[]'); }
+    catch { return []; }
+};
+
+const getActiveTab = () => tabs.find(t => t.id === activeTabId);
+
+const notify = (type, title, message) => {
+    if (typeof Notify !== 'undefined') {
+        Notify[type](title, message);
+    }
+};
+
+function isBookmarklet(input) {
+    return input?.trim().startsWith("javascript:");
+}
+
+async function getExtension(extensionId) {
+    const db = await openDB();
+
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction("extensions", "readonly");
+        const request = tx.objectStore("extensions").get(extensionId);
+
+        request.onsuccess = () => {
+            resolve(request.result || null);
+        };
+
+        request.onerror = () => {
+            resolve(null);
+        };
+    });
+}
+
+async function getExtensionFile(extensionId, filename) {
+    const extension = await getExtension(extensionId);
+
+    if (!extension) {
+        console.error("[Axis] Extension not found:", extensionId);
+        return null;
+    }
+
+    const file = extension.files[filename];
+
+    if (!file) {
+        console.error("[Axis] File not found:", filename);
+        return null;
+    }
+
+    return file.data;
+}
+
+async function openExtensionUrl(url) {
+    console.log("[Axis] Opening extension:", url);
+
+    const tab = getActiveTab();
+
+    const path = url.slice("extension://".length);
+    const parts = path.split("/");
+
+    const extensionId = parts.shift();
+    const file = parts.join("/") || "popup.html";
+
+    console.log("[Axis] Extension ID:", extensionId, "| File:", file);
+
+    const html = await buildExtensionPage(extensionId, file);
+
+    if (!html) {
+        notify("error", "Extension", "Page not found");
+        return;
+    }
+
+    const blob = new Blob([html], { type: "text/html" });
+    const blobUrl = URL.createObjectURL(blob);
+
+    console.log("[Axis] Extension blob URL:", blobUrl);
+
+    tab.frame.frame.src = blobUrl;
+}
+
+// =====================================================
+// INITIALIZATION
+// =====================================================
+async function getSharedScramjet() {
+    if (sharedScramjet) return sharedScramjet;
+
+    const basePath = getBasePath();
+    const { ScramjetController } = $scramjetLoadController();
+    
+    sharedScramjet = new ScramjetController({
+        prefix: basePath + "scramjet/",
+        files: {
+            wasm: "https://cdn.jsdelivr.net/gh/Destroyed12121/Staticsj@main/JS/scramjet.wasm.wasm",
+            all: "https://cdn.jsdelivr.net/gh/Destroyed12121/Staticsj@main/JS/scramjet.all.js",
+            sync: "https://cdn.jsdelivr.net/gh/Destroyed12121/Staticsj@main/JS/scramjet.sync.js"
+        }
+    });
+    
+    try {
+        await sharedScramjet.init();
+    } catch (err) {
+        if (err.message && err.message.includes('IDBDatabase') || err.message && err.message.includes('object stores')) {
+            console.warn('[Axis] Scramjet IndexedDB error, clearing cache and retrying...');
+            
+            try {
+                const dbNames = ['scramjet-data', 'scrambase', 'ScramjetData'];
+                for (const dbName of dbNames) {
+                    const req = indexedDB.deleteDatabase(dbName);
+                    req.onsuccess = () => console.log(`[Axis] Cleared IndexedDB: ${dbName}`);
+                    req.onerror = () => console.warn(`[Axis] Failed to clear IndexedDB: ${dbName}`);
+                }
+            } catch (clearErr) {
+                console.warn('[Axis] Failed to clear IndexedDB:', clearErr);
+            }
+            
+            sharedScramjet = null;
+            return getSharedScramjet();
+        }
+        throw err;
+    }
+    
+    return sharedScramjet;
+}
+
+async function getSharedConnection() {
+    if (sharedConnectionReady) return sharedConnection;
+
+    const basePath = getBasePath();
+    const wispUrl = localStorage.getItem("proxServer") ?? DEFAULT_WISP;
+    
+    sharedConnection = new BareMux.BareMuxConnection(basePath + "bareworker.js");
+    await sharedConnection.setTransport(
+        "https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-transport@2.1.28/dist/index.mjs",
+        [{ wisp: wispUrl }]
+    );
+    sharedConnectionReady = true;
+    return sharedConnection;
+}
+
+async function initializeBrowser() {
+    const root = document.getElementById("app");
+    root.innerHTML = `
+        <div class="browser-container">
+            <div class="flex tabs" id="tabs-container"></div>
+            <div class="flex nav">
+                <button id="back-btn" title="Back"><i class="fa-solid fa-chevron-left"></i></button>
+                <button id="fwd-btn" title="Forward"><i class="fa-solid fa-chevron-right"></i></button>
+                <button id="reload-btn" title="Reload"><i class="fa-solid fa-rotate-right"></i></button>
+                <div class="address-wrapper">
+                    <input class="bar" id="address-bar" autocomplete="off" placeholder="Search or enter URL">
+                    <button id="home-btn-nav" title="Home"><i class="fa-solid fa-house"></i></button>
+                </div>
+                
+                <button id="wisp-settings-btn" title="Proxy Settings"><i class="fa-solid fa-gear"></i></button>
+     
+                <div class="dropdown">
+                    <button id="tools-btn" title="Tools">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+
+                    <div class="dropdown-menu" id="tools-menu">
+                        <button id="devtools-btn" title="DevTools">
+                            <i class="fa-solid fa-code"></i> DevTools
+                        </button>
+
+                        <button id="wisp-settings-btn-menu" title="Proxy Settings">
+                            <i class="fa-solid fa-gear"></i> Settings
+                        </button>
+                        <hr>
+                        <button onclick='handleSubmit("axis://extensions"); document.getElementById("tools-menu").style.display = "none";'>
+                            <i class="fa-solid fa-puzzle-piece"></i> Extensions <small>axis://extensions</small>
+                        </button>
+
+                        <button onclick='handleSubmit("axis://urls"); document.getElementById("tools-menu").style.display = "none";'>
+                            <i class="fa-solid fa-link"></i> URLs <small>axis://urls</small>
+                        </button>
+
+                        <button onclick='handleSubmit("axis://about"); document.getElementById("tools-menu").style.display = "none";'>
+                            <i class="fa-solid fa-info"></i> About <small>axis://about</small>
+                        </button>
+                        <hr>
+                        <button onclick="window.open('https://github.com/0800WebDev/axis/', '_blank')" title="GitHub repository">
+                            <i class="fa-brands fa-github"></i> GitHub
+                        </button>
+                        <button onclick="window.open('https://github.com/0800WebDev/axis/issues/new', '_blank')" title="Report an issue">
+                            <i class="fa-solid fa-bug"></i> Report Issue
+                        </button>
+                        <hr>
+                        <button onclick="window.open('https://zinc-byod.vercel.app/', '_blank')" title="BYOD">
+                            <i class="fa-solid fa-globe"></i> BYOD
+                        </button>
+                        <button onclick="window.open('https://ubghub.org/?site=Axis', '_blank')" title="UBGHub">
+                            <i class="fa-solid fa-list"></i> UBGHub
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="loading-bar-container"><div class="loading-bar" id="loading-bar"></div></div>
+            <div class="iframe-container" id="iframe-container">
+                <div id="loading" class="message-container" style="display: none;">
+                    <div class="message-content">
+                        <div class="spinner"></div>
+                        <h1 id="loading-title">Connecting</h1>
+                        <p id="loading-url">Initializing proxy...</p>
+                        <button id="skip-btn">Skip</button>
+                    </div>
+                </div>
+                <div id="error" class="message-container" style="display: none;">
+                    <div class="message-content">
+                        <h1>Connection Error</h1>
+                        <p id="error-message">An error occurred.</p>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+    const toolsBtn = document.getElementById("tools-btn");
+    const toolsMenu = document.getElementById("tools-menu");
+
+    toolsBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toolsMenu.style.display =
+            toolsMenu.style.display === "block" ? "none" : "block";
+    });
+
+    document.addEventListener("click", () => {
+        toolsMenu.style.display = "none";
+    });
+
+    const elements = {
+        backBtn: document.getElementById('back-btn'),
+        fwdBtn: document.getElementById('fwd-btn'),
+        reloadBtn: document.getElementById('reload-btn'),
+        addrBar: document.getElementById('address-bar'),
+        skipBtn: document.getElementById('skip-btn')
+    };
+
+    elements.backBtn.onclick = () => getActiveTab()?.frame.back();
+    elements.fwdBtn.onclick = () => getActiveTab()?.frame.forward();
+    elements.reloadBtn.onclick = () => getActiveTab()?.frame.reload();
+    document.getElementById('home-btn-nav').onclick = () => window.location.href = '../index.html';
+    document.getElementById('devtools-btn').onclick = toggleDevTools;
+    document.getElementById('wisp-settings-btn').onclick = openSettings;
+    document.getElementById('wisp-settings-btn-menu').onclick = openSettings;
+
+    elements.skipBtn.onclick = () => {
+        const tab = getActiveTab();
+        if (tab) {
+            tab.loading = false;
+            showIframeLoading(false);
+        }
+    };
+
+    elements.addrBar.onkeyup = (e) => e.key === 'Enter' && handleSubmit();
+    elements.addrBar.onfocus = () => elements.addrBar.select();
+
+    window.addEventListener('message', (e) => {
+        if (e.data?.type === 'navigate') handleSubmit(e.data.url);
+        if (e.data?.type === 'axis-navigate') handleSubmit(e.data.url);
+    });
+
+    createTab(true);
+    checkHashParameters();
+
+    window.addEventListener("message", async event => {
+        const data = event.data;
+        if (!data) return;
+
+        switch (data.type) {
+            case "axis-execute-script":
+                const result = runInActiveFrame(data.code);
+                event.source.postMessage({
+                    type: "axis-response",
+                    id: data.id,
+                    result
+                }, "*");
+                break;
+        }
+    });
+}
+
+// =====================================================
+// TAB MANAGEMENT
+// =====================================================
+function createTab(makeActive = true) {
+    const frame = sharedScramjet.createFrame();
+    const tab = {
+        id: nextTabId++,
+        title: "New Tab",
+        url: "NT.html",
+        frame,
+        loading: false,
+        favicon: null,
+        skipTimeout: null,
+        loadStartTime: null
+    };
+
+    frame.frame.src = "NT.html";
+
+    frame.addEventListener("urlchange", (e) => {
+        tab.url = e.url;
+        tab.loading = true;
+        tab.loadStartTime = Date.now();
+
+        if (tab.id === activeTabId) {
+            showIframeLoading(true, tab.url);
+        }
+
+        try {
+            const urlObj = new URL(e.url);
+            tab.title = urlObj.hostname;
+            tab.favicon = `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=32`;
+        } catch {
+            tab.title = "Browsing";
+            tab.favicon = null;
+        }
+        
+        updateTabsUI();
+        updateAddressBar();
+        updateLoadingBar(tab, 10);
+
+        if (tab.skipTimeout) clearTimeout(tab.skipTimeout);
+        tab.skipTimeout = setTimeout(() => {
+            if (tab.loading && tab.id === activeTabId) {
+                document.getElementById('skip-btn')?.style.setProperty('display', 'inline-block');
+            }
+        }, 200);
+    });
+
+    frame.frame.addEventListener('load', () => {
+        tab.loading = false;
+        clearTimeout(tab.skipTimeout);
+
+        if (tab.id === activeTabId) {
+            showIframeLoading(false);
+        }
+
+        try {
+            const title = frame.frame.contentWindow.document.title;
+            if (title) tab.title = title;
+        } catch { }
+
+        if (frame.frame.contentWindow.location.href.includes('NT.html')) {
+            tab.title = "New Tab";
+            tab.url = "";
+            tab.favicon = null;
+        }
+
+        updateTabsUI();
+        updateAddressBar();
+        updateLoadingBar(tab, 100);
+    });
+
+    tabs.push(tab);
+    document.getElementById("iframe-container").appendChild(frame.frame);
+    if (makeActive) switchTab(tab.id);
+    return tab;
+}
+
+function showIframeLoading(show, url = '') {
+    const loader = document.getElementById("loading");
+    if (!loader) return;
+
+    loader.style.display = show ? "flex" : "none";
+    getActiveTab()?.frame.frame.classList.toggle('loading', show);
+
+    if (show) {
+        document.getElementById("loading-title").textContent = "Connecting";
+        document.getElementById("loading-url").textContent = url || "Loading content...";
+        document.getElementById("skip-btn").style.display = 'none';
+    }
+}
+
+function switchTab(tabId) {
+    activeTabId = tabId;
+    const tab = getActiveTab();
+
+    tabs.forEach(t => t.frame.frame.classList.toggle("hidden", t.id !== tabId));
+
+    if (tab) {
+        showIframeLoading(tab.loading, tab.url);
+        
+        const skipBtn = document.getElementById('skip-btn');
+        if (tab.loading && tab.loadStartTime && skipBtn) {
+            const elapsed = Date.now() - tab.loadStartTime;
+            if (elapsed > 3000) skipBtn.style.display = 'inline-block';
+        }
+    }
+
+    updateTabsUI();
+    updateAddressBar();
+}
+
+function closeTab(tabId) {
+    const idx = tabs.findIndex(t => t.id === tabId);
+    if (idx === -1) return;
+
+    const tab = tabs[idx];
+    clearTimeout(tab.skipTimeout);
+    
+    if (tab.frame?.frame) {
+        tab.frame.frame.src = 'about:blank';
+        tab.frame.frame.remove();
+    }
+    
+    tabs.splice(idx, 1);
+
+    if (activeTabId === tabId) {
+        if (tabs.length > 0) switchTab(tabs[Math.max(0, idx - 1)].id);
+        else window.location.reload();
+    } else {
+        updateTabsUI();
+    }
+}
+
+function updateTabsUI() {
+    const container = document.getElementById("tabs-container");
+    container.innerHTML = "";
+
+    tabs.forEach(tab => {
+        const el = document.createElement("div");
+        el.className = `tab ${tab.id === activeTabId ? "active" : ""}`;
+
+        const iconHtml = tab.loading 
+            ? `<div class="tab-spinner"></div>`
+            : tab.favicon 
+                ? `<img src="${tab.favicon}" class="tab-favicon" onerror="this.style.display='none'">`
+                : '';
+
+        el.innerHTML = `${iconHtml}<span class="tab-title">${tab.title}</span><span class="tab-close">&times;</span>`;
+        el.onclick = () => switchTab(tab.id);
+        el.querySelector(".tab-close").onclick = (e) => { e.stopPropagation(); closeTab(tab.id); };
+        container.appendChild(el);
+    });
+
+    const newBtn = document.createElement("button");
+    newBtn.className = "new-tab";
+    newBtn.innerHTML = "<i class='fa-solid fa-plus'></i>";
+    newBtn.onclick = () => createTab(true);
+    container.appendChild(newBtn);
+}
+
+function updateAddressBar() {
+    const bar = document.getElementById("address-bar");
+    const tab = getActiveTab();
+    if (bar && tab) {
+        bar.value = (tab.url && !tab.url.includes("NT.html")) ? tab.url : "";
+    }
+}
+
+async function handleSubmit(url) {
+    const tab = getActiveTab();
+    let input = url ?? document.getElementById("address-bar").value.trim();
+    if (!input) return;
+
+    if (input.startsWith("extension://")) {
+        await openExtensionUrl(input);
+        return;
+    }
+
+    if (input.startsWith("axis://")) {
+        const target = input.slice("axis://".length).trim();
+        if (!target) return;
+
+        const internalUrl = `internal/${target}.html`;
+
+        tab.loading = true;
+        showIframeLoading(true, internalUrl);
+        updateLoadingBar(tab, 10);
+
+        tab.frame.frame.src = internalUrl;
+        return;
+    }
+
+    const bookmarkletCode = parseBookmarklet(input);
+    if (bookmarkletCode) {
+        const ok = runInActiveFrame(bookmarkletCode);
+        if (!ok) {
+            notify('error', 'Bookmarklet failed', 'Could not inject into page');
+        }
+        return;
+    }
+
+    if (!input.startsWith('http')) {
+        input = input.includes('.') && !input.includes(' ')
+            ? `https://${input}`
+            : `https://search.brave.com/search?q=${encodeURIComponent(input)}`;
+    }
+
+    tab.loading = true;
+    showIframeLoading(true, input);
+    updateLoadingBar(tab, 10);
+    tab.frame.go(input);
+}
+
+function updateLoadingBar(tab, percent) {
+    if (tab.id !== activeTabId) return;
+    const bar = document.getElementById("loading-bar");
+    bar.style.width = percent + "%";
+    bar.style.opacity = percent === 100 ? "0" : "1";
+    if (percent === 100) setTimeout(() => { bar.style.width = "0%"; }, 200);
+}
+
+// =====================================================
+// SETTINGS & WISP
+// =====================================================
+function openSettings() {
+    const modal = document.getElementById('wisp-settings-modal');
+    modal.classList.remove('hidden');
+
+    document.getElementById('close-wisp-modal').onclick = () => modal.classList.add('hidden');
+    document.getElementById('save-custom-wisp').onclick = saveCustomWisp;
+
+    modal.onclick = (e) => { if (e.target === modal) modal.classList.add('hidden'); };
+    renderServerList();
+}
+
+function renderServerList() {
+    const list = document.getElementById('server-list');
+    list.innerHTML = '';
+
+    const currentUrl = localStorage.getItem('proxServer') ?? DEFAULT_WISP;
+    const groups = getGroupedWispServers();
+
+    for (const [groupName, servers] of Object.entries(groups)) {
+        const heading = document.createElement("h3");
+        heading.className = "wisp-group-title";
+        heading.textContent = groupName;
+        list.appendChild(heading);
+
+        servers.forEach(server => {
+            const isActive = server.url === currentUrl;
+            const isCustom = server.group === "Custom";
+
+            const item = document.createElement('div');
+            item.className = `wisp-option ${isActive ? 'active' : ''}`;
+
+            const deleteBtn = isCustom
+                ? `<button class="delete-wisp-btn" onclick="event.stopPropagation(); deleteCustomWisp('${server.url}')"><i class="fa-solid fa-trash"></i></button>`
+                : '';
+
+            item.innerHTML = `
+                <div class="wisp-option-header">
+                    <div class="wisp-option-name">
+                        ${server.name}
+                        ${isActive ? '<i class="fa-solid fa-check" style="margin-left:8px; font-size: 0.7em; color: var(--accent);"></i>' : ''}
+                    </div>
+                    <div class="server-status">
+                        <span class="ping-text">...</span>
+                        <div class="status-indicator"></div>
+                        ${deleteBtn}
+                    </div>
+                </div>
+                <div class="wisp-option-url">${server.url}</div>
+            `;
+
+            item.onclick = () => setWisp(server.url);
+            list.appendChild(item);
+            checkServerHealth(server.url, item);
+        });
+    }
+
+    const isAutoswitch = localStorage.getItem('wispAutoswitch') !== 'false';
+    const toggleContainer = document.createElement('div');
+    toggleContainer.className = 'wisp-option';
+    toggleContainer.style.cssText = 'margin-top: 10px; cursor: default;';
+    toggleContainer.innerHTML = `
+        <div class="wisp-option-header" style="justify-content: space-between;">
+            <div class="wisp-option-name"><i class="fa-solid fa-rotate" style="margin-right:8px"></i> Auto-switch on failure</div>
+            <div class="toggle-switch ${isAutoswitch ? 'active' : ''}" id="autoswitch-toggle">
+                <div class="toggle-knob"></div>
+            </div>
+        </div>
+    `;
+
+    toggleContainer.onclick = () => {
+        const newState = !isAutoswitch;
+        localStorage.setItem('wispAutoswitch', newState);
+        document.getElementById('autoswitch-toggle').classList.toggle('active', newState);
+
+        navigator.serviceWorker.controller?.postMessage({ type: 'config', autoswitch: newState });
+        notify('success', 'Settings Saved', `Autoswitch ${newState ? 'Enabled' : 'Disabled'}`);
+        location.reload();
+    };
+
+    list.appendChild(toggleContainer);
+}
+
+function saveCustomWisp() {
+    const input = document.getElementById('custom-wisp-input');
+    const url = input.value.trim();
+
+    if (!url) return;
+    if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
+        notify('error', 'Invalid URL', 'URL must start with wss:// or ws://');
+        return;
+    }
+
+    const customWisps = getStoredWisps();
+    if (customWisps.some(w => w.url === url) || WISP_SERVERS.some(w => w.url === url)) {
+        notify('warning', 'Already Exists', 'This server is already in the list.');
+        return;
+    }
+
+    const newServer = {
+        group: "Custom",
+        name: `Custom ${customWisps.length + 1}`,
+        url
+    };
+    customWisps.push(newServer);
+    localStorage.setItem('customWisps', JSON.stringify(customWisps));
+    
+    setWisp(url);
+    
+    input.value = '';
+}
+
+window.deleteCustomWisp = function (urlToDelete) {
+    if (!confirm("Remove this server?")) return;
+
+    let customWisps = getStoredWisps().filter(w => w.url !== urlToDelete);
+    localStorage.setItem('customWisps', JSON.stringify(customWisps));
+
+    if (localStorage.getItem('proxServer') === urlToDelete) {
+        setWisp(DEFAULT_WISP);
+    } else {
+        renderServerList();
+    }
+};
+
+async function checkServerHealth(url, element) {
+    const dot = element.querySelector('.status-indicator');
+    const text = element.querySelector('.ping-text');
+    const start = Date.now();
+
+    const markOffline = () => {
+        dot.classList.add('status-error');
+        text.textContent = "Offline";
+    };
+
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 2000);
+        
+        await fetch(url.replace('wss://', 'https://').replace('/wisp/', '/health') || url, {
+            method: 'HEAD',
+            signal: controller.signal,
+            mode: 'no-cors'
+        });
+        
+        clearTimeout(timeout);
+        dot.classList.add('status-success');
+        text.textContent = `${Date.now() - start}ms`;
+    } catch {
+        try {
+            const wsTest = new WebSocket(url);
+            wsTest.onopen = () => {
+                dot.classList.add('status-success');
+                text.textContent = `${Date.now() - start}ms`;
+                wsTest.close();
+            };
+            wsTest.onerror = markOffline;
+            
+            setTimeout(() => {
+                if (wsTest.readyState !== WebSocket.OPEN) {
+                    wsTest.close();
+                    markOffline();
+                }
+            }, 1000);
+        } catch { markOffline(); }
+    }
+}
+
+function setWisp(url) {
+    const oldUrl = localStorage.getItem('proxServer');
+    localStorage.setItem('proxServer', url);
+
+    if (typeof trackWispServer === "function") {
+        trackWispServer(url);
+    }
+
+    if (oldUrl !== url) {
+        const serverName = [...WISP_SERVERS, ...getStoredWisps()].find(s => s.url === url)?.name ?? 'Custom Server';
+        notify('success', 'Proxy Changed', `Switching to ${serverName}...`);
+    }
+
+    navigator.serviceWorker.controller?.postMessage({ type: 'config', wispurl: url });
+    setTimeout(() => location.reload(), 600);
+}
+
+// =====================================================
+// UTILITIES
+// =====================================================
+function toggleDevTools() {
+    const win = getActiveTab()?.frame.frame.contentWindow;
+    if (!win) return;
+    if (win.eruda) {
+        win.eruda.show();
+        return;
+    }
+    const script = win.document.createElement('script');
+    script.src = "https://cdn.jsdelivr.net/npm/eruda";
+    script.onload = () => { win.eruda.init(); win.eruda.show(); };
+    win.document.body.appendChild(script);
+}
+
+async function checkHashParameters() {
+    if (window.location.hash) {
+        const hash = decodeURIComponent(window.location.hash.substring(1));
+        if (hash) handleSubmit(hash);
+        history.replaceState(null, null, location.pathname);
+    }
+}
+
+// =====================================================
+// EXTENSIONS
+// =====================================================
+function startBackground(extension, code) {
+    const axis = {
+        runtime: {
+            id: extension.id,
+            manifest: extension.manifest
+        },
+
+        tabs: {
+            executeScript(script) {
+                return runInActiveFrame(script);
+            }
+        },
+
+        storage: {
+            get(key) {
+                return JSON.parse(
+                    localStorage.getItem(`${extension.id}:${key}`)
+                );
+            },
+
+            set(key, value) {
+                localStorage.setItem(
+                    `${extension.id}:${key}`,
+                    JSON.stringify(value)
+                );
+            }
+        }
+    };
+
+    try {
+        new Function("axis", code)(axis);
+    } catch (e) {
+        console.error(`[Axis] Background script failed for ${extension.id}:`, e);
+    }
+}
+
+async function loadBackgroundScripts() {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, "readonly");
+    const req = tx.objectStore(STORE_NAME).getAll();
+
+    req.onsuccess = () => {
+        for (const extension of req.result) {
+            if (extension.enabled === false) continue;
+
+            const background = extension.manifest.background;
+            if (!background) continue;
+
+            const file = extension.files[background];
+            if (!file) continue;
+
+            startBackground(extension, file.data);
+        }
+    };
+}
+
+// =====================================================
+// MAIN INITIALIZATION
+// =====================================================
+document.addEventListener('DOMContentLoaded', async function () {
+    try {
+        await initializeWithBestServer();
+        
+        await getSharedScramjet();
+        await getSharedConnection();
+
+        if ('serviceWorker' in navigator) {
+            const reg = await navigator.serviceWorker.register(getBasePath() + 'sw.js', { scope: getBasePath() });
+            
+            await navigator.serviceWorker.ready;
+            
+            const wispUrl = localStorage.getItem("proxServer") ?? DEFAULT_WISP;
+            const allServers = getAllWispServers();
+            const autoswitch = localStorage.getItem('wispAutoswitch') !== 'false';
+            
+            const swConfig = {
+                type: "config",
+                wispurl: wispUrl,
+                servers: allServers,
+                autoswitch: autoswitch
+            };
+
+            const sendConfig = async () => {
+                const sw = reg.active || navigator.serviceWorker.controller;
+                if (sw) {
+                    console.log("[Axis] Sending config to SW:", swConfig);
+                    sw.postMessage(swConfig);
+                }
+            };
+
+            sendConfig();
+            setTimeout(sendConfig, 500);
+            setTimeout(sendConfig, 1500);
+
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                const { type, url, name, message } = event.data;
+                if (type === 'wispChanged') {
+                    console.log("[Axis] SW reported Wisp Change:", event.data);
+                    localStorage.setItem("proxServer", url);
+                    notify('info', 'Autoswitched Proxy', `Now using ${name} because the previous server was slow or offline.`);
+                } else if (type === 'wispError') {
+                    console.error("[Axis] SW reported Wisp Error:", event.data);
+                    notify('error', 'Proxy Error', message);
+                }
+            });
+
+            reg.update();
+        }
+
+        await initializeBrowser();
+    } catch (err) {
+        console.error("[Axis] Initialization error:", err);
+
+        document.body.innerHTML = `
+            <div style="
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 100vh;
+                background: #030304;
+                color: white;
+                font-family: 'Inter', system-ui, sans-serif;
+                text-align: center;
+                padding: 24px;
+                position: relative;
+                overflow: hidden;
+            ">
+                <div style="position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(ellipse 60% 50% at 50% 50%,black 20%,transparent 100%);-webkit-mask-image:radial-gradient(ellipse 60% 50% at 50% 50%,black 20%,transparent 100%);pointer-events:none;"></div>
+                <div style="position:fixed;width:500px;height:500px;border-radius:50%;top:-100px;left:50%;transform:translateX(-50%);background:#6366f1;filter:blur(140px);opacity:0.06;pointer-events:none;"></div>
+                <div style="position:relative;z-index:1;">
+                    <img src="https://raw.githubusercontent.com/viroda1/Axis/refs/heads/main/Untitled%20design%20(1).svg" alt="Axis" style="width:48px;height:48px;filter:drop-shadow(0 0 16px rgba(99,102,241,0.25));margin-bottom:24px;">
+                    <h1 style="font-size:20px;font-weight:600;margin-bottom:8px;letter-spacing:-0.02em;">Initialization Failed</h1>
+                    <p style="color:#64748b;font-size:14px;font-weight:300;max-width:400px;line-height:1.6;margin-bottom:24px;">${err.message}</p>
+                    <button
+                        onclick="location.reload()"
+                        style="
+                            display:inline-flex;align-items:center;gap:8px;
+                            padding:11px 24px;
+                            background:#FFFFFF;color:#000;
+                            border:none;border-radius:10px;
+                            cursor:pointer;font-size:13px;font-weight:600;
+                            font-family:'Inter',system-ui,sans-serif;
+                            transition:all 150ms ease;
+                        "
+                        onmouseover="this.style.background='#e2e8f0';this.style.transform='translateY(-1px)'"
+                        onmouseout="this.style.background='#FFFFFF';this.style.transform='translateY(0)'"
+                    >
+                        <i class="fa-solid fa-rotate-right" style="font-size:11px;"></i> Refresh
+                    </button>
+                    <br><br>
+                    <small style="color:#334155;font-size:12px;">If the problem continues, try switching to a desktop or different browser.</small>
+                </div>
+            </div>
+        `;
+    }
+});
+
+loadBackgroundScripts();
