@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: axis-browser
+    runtime: static
+    buildCommand: ""
+    publish: .
+    headers:
+      - path: /sw.js
+        values:
+          Cache-Control: no-store, no-cache, must-revalidate
+          Service-Worker-Allowed: /
+      - path: "/*.js"
+        values:
+          Cache-Control: "public, max-age=31536000, immutable"
+      - path: "/*.wasm"
+        values:
+          Cache-Control: "public, max-age=31536000, immutable"
+          Content-Type: application/wasm
+      - path: "/*.{css,png,svg,ico,woff2}"
+        values:
+          Cache-Control: "public, max-age=31536000, immutable"
+      - path: "/*.html"
+        values:
+          Cache-Control: no-cache
