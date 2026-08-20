@@ -1,0 +1,33 @@
+{
+  "build": {
+    "command": "",
+    "outputDirectory": "."
+  },
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Service-Worker-Allowed": "/"
+      }
+    },
+    {
+      "source": "/(.*)\\.js$",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "source": "/(.*)\\.(wasm|css|png|svg|ico|woff2)$",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "source": "/(.*)\\.html$",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    }
+  ]
+}
